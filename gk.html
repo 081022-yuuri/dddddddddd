@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>🩸 경찰 수사 게임 - 어둠 속의 진실 🩸</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap');
+  body {
+    background: #100000;
+    color: #ff4444;
+    font-family: 'Roboto Mono', monospace;
+    margin: 0; padding: 20px;
+    user-select: none;
+    overflow-x: hidden;
+  }
+  h1, h2 {
+    text-shadow: 0 0 5px #ff0000, 0 0 10px #ff0000;
+  }
+  .section {
+    background: #330000cc;
+    padding: 20px;
+    margin-bottom: 30px;
+    border-radius: 10px;
+    box-shadow: 0 0 15px #ff2222 inset;
+  }
+  button {
+    background: #440000;
+    border: 1px solid #ff1111;
+    color: #ff9999;
+    font-weight: bold;
+    padding: 12px 20px;
+    margin: 10px 6px 6px 0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  button:hover {
+    background: #ff0000;
+    color: #220000;
+  }
+  #output {
+    white-space: pre-line;
+    line-height: 1.6em;
+    font-size: 1.1em;
+  }
+  #timer {
+    font-size: 1.4em;
+    font-weight: bold;
+    color: #ff1111;
+    text-shadow: 0 0 10px #ff0000;
+    margin-bottom: 20px;
+  }
+  textarea {
+    width: 100%;
+    height: 120px;
+    background: #220000;
+    color: #ffbbbb;
+    border: 1px solid #ff2222;
+    font-family: monospace;
+    font-size: 1em;
+    padding: 10px;
+    border-radius: 6px;
+    resize: none;
+  }
+</style>
+</head>
+<body>
+
+<h1>🩸 경찰 수사 게임 - 어둠 속의 진실 🩸</h1>
+<div id="timer">⏳ 남은 시간: <span id="timeLeft">60</span>초</div>
+
+<div id="story" class="section">
+  <p>깊은 밤, 대학 도서관에서 희귀 도서가 사라졌다.<br>
+  범인의 흔적을 쫓아, 수사를 시작한다.<br><br>
+  <strong>수사 방식을 선택하라.</strong></p>
+  <button onclick="choosePath('logic')">🧠 논리적 수사</button>
+  <button onclick="choosePath('instinct')">🔥 직감 수사</button>
+</div>
+
+<div id="gameArea" class="section" style="display:none;">
+  <div id="narration"></div>
+  <div id="choices"></div>
+  <textarea id="memo" placeholder="수사 메모 작성 가능..."></textarea>
+</div>
+
+<script>
+  let timeLeft = 60;
+  let timerId;
+  let path = '';
+  let state = 0;
+  let clues = { usb: false, footprint: false, testimony: false };
+  let npcMood = { park: 0 };
+
+  const narrationEl = document.getElementById('narration');
+  const choicesEl = document.getElementById('choices');
+  const memoEl = document.getElementById('memo');
+  const timeEl = document.getElementById('timeLeft');
+  const gameArea = document.getElementById('gameArea');
+  const storyDiv = document.getElementById('story');
+
+  function startTimer() {
+    timerId = setInterval(() => {
+      timeLeft--;
+      timeEl.textContent = timeLeft;
+      if (timeLeft <= 0) {
+        clearInterval(timerId);
+        gameOver("⏰ 시간이 다 되었다. 범인은 사라졌고, 당신은 실패했다...");
+      }
+    }, 1000);
+  }
+
+  function choosePath(selected) {
+    path = selected;
+    storyDiv.style.display = 'none';
+    gameArea.style.display = 'block';
+    startTimer();
+    advanceStory();
+    scrollToGameArea();
+  }
+
+  function scrollToGameArea() {
+    gameArea.scrollIntoView({behavior: 'smooth'});
+  }
+
+  function clearChoices() {
+    choicesEl.innerHTML = '';
+  }
+
+  function addChoice(text, callback) {
+    let btn = document.createElement('button');
+    btn.textContent = text;
+    btn.onclick = () => {
+      callback();
+      scrollToGameArea();
+    };
+    choicesEl.appendChild(btn);
+  }
+
+  function advanceStory() {
+    clearChoices();
+    switch (state) {
+      case 0:
+        narrationEl.textContent =
+          path === 'logic'
+            ? "📁 CCTV 기록과 USB 파일을 분석한다. 어둠 속 진실을 파헤쳐라."
+            : "👣 발자국을 쫓아 현장을 샅샅이 뒤진다. 감각에 의지해 범인의 흔적을 찾아라.";
+        if (path === 'logic') {
+          addChoice('USB 조사', () => {
+            clues.usb = true;
+            narrationEl.textContent = '📂 USB에서 삭제된 파일 흔적 발견! 범인의 단서일까?';
+            nextState();
+          });
+          addChoice('CCTV 확인', () => {
+            narrationEl.textContent = '🎥 CCTV 영상은 형광등 깜빡임으로 정확하지 않다.';
+            nextState();
+          });
+        } else {
+          addChoice('발자국 추적', () => {
+            clues.footprint = true;
+            narrationEl.textContent = '👣 희귀 브랜드 신발의 발자국을 발견했다.';
+            nextState();
+          });
+          addChoice('담배 냄새 탐지', () => {
+            narrationEl.textContent = '🌑 담배 냄새가 범인의 흔적일 수 있다.';
+            nextState();
+          });
+        }
+        break;
+
+      case 1:
+        narrationEl.textContent = '🧍‍♂️ 박현수 용의자를 마주했다. 심문 방식을 선택하라.';
+        addChoice('유화적으로 심문', () => {
+          npcMood.park = 1;
+          narrationEl.textContent = '박현수가 마음을 열기 시작한다.';
+          nextState();
+        });
+        addChoice('강압적으로 몰아붙이기', () => {
+          npcMood.park = -1;
+          narrationEl.textContent = '박현수가 불안해하며 분노한다.';
+          nextState();
+        });
+        break;
+
+      case 2:
+        narrationEl.textContent =
+          path === 'logic'
+            ? '🔍 USB 분석 결과 박현수의 수상한 활동 기록이 드러났다.'
+            : '💥 발자국과 담배 냄새가 박현수의 알리바이와 맞지 않는다.';
+        addChoice('심문 계속', () => {
+          if (npcMood.park === -1) {
+            narrationEl.textContent = '박현수가 거짓말을 하며 분노한다.';
+            clues.testimony = false;
+          } else {
+            narrationEl.textContent = '박현수가 죄책감을 드러내며 진술한다.';
+            clues.testimony = true;
+          }
+          nextState();
+        });
+        addChoice('다른 용의자 조사', () => {
+          narrationEl.textContent = '이서연에 관한 정보를 수집한다. 그녀의 행적은 불투명하다.';
+          nextState(true);
+        });
+        break;
+
+      case 3:
+        narrationEl.textContent = '최종 선택! 범인을 지목하라.';
+        addChoice('김지훈', () => finalJudgement('김지훈'));
+        addChoice('이서연', () => finalJudgement('이서연'));
+        addChoice('박현수', () => finalJudgement('박현수'));
+        break;
+
+      case 4:
+        // 게임 끝
+        break;
+    }
+  }
+
+  function nextState(skip = false) {
+    state++;
+    if (skip) {
+      narrationEl.textContent += '\n(복잡한 심리전과 추가 수사가 예정되어 있습니다...)';
+    }
+    advanceStory();
+  }
+
+  function finalJudgement(suspect) {
+    clearInterval(timerId);
+    clearChoices();
+    let result = '';
+    if (suspect === '박현수') {
+      if (clues.usb && clues.testimony) {
+        result =
+          '🔪 박현수가 범인이다! 희귀 도서를 훔치려 했고 거짓과 분노로 진실을 숨겼다. 사건 해결!';
+      } else {
+        result = '❌ 증거 부족. 박현수 범인 여부 불확실. 사건 미제로 남았다.';
+      }
+    } else if (suspect === '이서연') {
+      if (clues.footprint) {
+        result =
+          '💀 이서연의 발자국이 현장과 일치한다. 그녀가 범인일 수도 있다.';
+      } else {
+        result = '❌ 증거 불충분. 이서연을 범인으로 단정할 수 없다.';
+      }
+    } else {
+      result = '❌ 김지훈에 대한 증거가 부족하다. 용의선상에서 제외된다.';
+    }
+    narrationEl.textContent = result + '\n\n게임 종료. 새로고침하여 다시 시작하세요.';
+  }
+
+  function gameOver(msg) {
+    clearChoices();
+    narrationEl.textContent = msg + '\n\n게임 종료. 새로고침하여 다시 시작하세요.';
+  }
+</script>
+
+</body>
+</html>
